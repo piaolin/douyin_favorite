@@ -28,4 +28,4 @@ python3 douyin_favorite.py -u https://www.iesdouyin.com/share/user/75459111811
 抖音分享后，使用浏览器打开，此时URL则为share/user/id格式
 
 ## 实例
-<p align="center"><img src="https://raw.githubusercontent.com/piaolin/douyin_favorite/master/picture/shot.jpg" width="800"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/piaolin/douyin_favorite/master/picture/shot.jpg" width="1200"></p>
