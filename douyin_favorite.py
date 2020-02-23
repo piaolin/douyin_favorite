@@ -5,15 +5,15 @@ import time
 import sys
 import optparse
 from prettytable import PrettyTable
-from smtplib import SMTP
+from smtplib import SMTP_SSL
 from email.mime.text import MIMEText
 from email.header import Header
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 
-FROMEMAIL = "pianlin_ying@163.com"
-TOEMAIL = ["1418676300@qq.com", ]
+FROMEMAIL = "xxx@163.com"
+TOEMAIL = ["xxx@qq.com", ]
 STMPSERVER = "smtp.163.com"
-EMAILPASS = "16320001222ww"
+EMAILPASS = "xxx"
 LASTTIME = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 ENABLEEMAIL = True  # enable email to user
@@ -227,24 +227,25 @@ class DouyinHandle(object):
         """
         judge the current data and previous data
         """
-        # client = pymongo.MongoClient("localhost")
-        client = pymongo.MongoClient(
-            "mongodb+srv://piaoling:20001222ww@piaolin-2hdvk.azure.mongodb.net/test?retryWrites=true&w=majority")
-        db = client.piaolin
+        client = pymongo.MongoClient("localhost")
+        db = client.douyin
         douyin = db.douyin
+
         if not douyin.count_documents({"url": self.url}):
             douyin.insert_one({"url": self.url, "ID": self.ID, "star_count": self.star_count,
                                "follower_count": self.follower_count, "works_count": self.works_count,
-                               "favorite_count": self.favorite_count})
+                               "favorite_count": self.favorite_count, "update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())})
             return
         result = douyin.find_one({"url": self.url})
-        douyin.update_one({"url": self.url},
-                          {"$set": {"star_count": self.star_count, "follower_count": self.follower_count,
-                                    "works_count": self.works_count, "favorite_count": self.favorite_count}})
+
+
         if (int(self.star_count) > int(result['star_count']) or
             int(self.follower_count) > int(result['follower_count']) or
             int(self.works_count) > int(result['works_count']) or
             int(self.favorite_count) > int(result['favorite_count'])) and ENABLEEMAIL:
+            douyin.update_one({"url": self.url},
+                    {"$set": {"star_count": self.star_count, "follower_count": self.follower_count,
+                            "works_count": self.works_count, "favorite_count": self.favorite_count, "update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}})
             self.mail(result)
 
     def mail(self, previous_data):
@@ -253,8 +254,9 @@ class DouyinHandle(object):
         :param previous_data: old data
         """
         global LASTTIME
-        email_client = SMTP(STMPSERVER)
+        email_client = SMTP_SSL(STMPSERVER)
         email_client.login(FROMEMAIL, EMAILPASS)
+
         html = """<html>
                 <head>
                 <style type="text/css">
@@ -327,13 +329,6 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(2)
 
-    sheduler = BackgroundScheduler()
+    sheduler = BlockingScheduler()
     sheduler.add_job(main, 'interval', minutes=10, start_date=LASTTIME, args=[options.url])
     sheduler.start()
-    try:
-        #  This is here to simulate application activity (which keeps the main thread alive).
-        while True:
-            time.sleep(2)
-    except(KeyboardInterrupt, SystemExit):
-        #  Not strictly necessary if daemonic mode is enabled but should be done if possible
-        sheduler.shutdown()
