@@ -10,11 +10,10 @@ from email.mime.text import MIMEText
 from email.header import Header
 from apscheduler.schedulers.background import BackgroundScheduler
 
-
-FROMEMAIL = "xxx@163.com"  # 发送邮箱
-TOEMAIL = ["xxx@qq.com",]  # 用户邮箱
-STMPSERVER = "smtp.163.com"  # SMTP服务器
-EMAILPASS = "xxx"  # 发送邮箱授权码
+FROMEMAIL = "pianlin_ying@163.com"
+TOEMAIL = ["1418676300@qq.com", ]
+STMPSERVER = "smtp.163.com"
+EMAILPASS = "16320001222ww"
 LASTTIME = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 ENABLEEMAIL = True  # enable email to user
@@ -218,7 +217,7 @@ class DouyinHandle(object):
         :param code_list: douyin code list
         :return: number
         """
-        codeList = ["0"+i for i in code_list]
+        codeList = ["0" + i for i in code_list]
         Num = ""
         for i in codeList:
             Num += Font2Num[Code2Font[i]]
@@ -228,22 +227,26 @@ class DouyinHandle(object):
         """
         judge the current data and previous data
         """
-        client = pymongo.MongoClient("localhost")
+        # client = pymongo.MongoClient("localhost")
+        client = pymongo.MongoClient(
+            "mongodb+srv://piaoling:20001222ww@piaolin-2hdvk.azure.mongodb.net/test?retryWrites=true&w=majority")
         db = client.piaolin
         douyin = db.douyin
         if not douyin.count_documents({"url": self.url}):
             douyin.insert_one({"url": self.url, "ID": self.ID, "star_count": self.star_count,
-                               "follower_count": self.follower_count, "works_count": self.works_count, "favorite_count": self.favorite_count})
+                               "follower_count": self.follower_count, "works_count": self.works_count,
+                               "favorite_count": self.favorite_count})
             return
         result = douyin.find_one({"url": self.url})
-        douyin.update_one({"url": self.url}, {"$set": {"star_count": self.star_count, "follower_count": self.follower_count,
-                                                       "works_count": self.works_count, "favorite_count": self.favorite_count}})
+        douyin.update_one({"url": self.url},
+                          {"$set": {"star_count": self.star_count, "follower_count": self.follower_count,
+                                    "works_count": self.works_count, "favorite_count": self.favorite_count}})
         if (int(self.star_count) > int(result['star_count']) or
             int(self.follower_count) > int(result['follower_count']) or
             int(self.works_count) > int(result['works_count']) or
-                int(self.favorite_count) > int(result['favorite_count'])) and ENABLEEMAIL:
+            int(self.favorite_count) > int(result['favorite_count'])) and ENABLEEMAIL:
             self.mail(result)
-        
+
     def mail(self, previous_data):
         """
         send new data to users by e-mail if updated
@@ -263,11 +266,14 @@ class DouyinHandle(object):
                 </head>
                 <body>
                 <table id="tfhover" class="tftable" border="1">
-                """+"""
+                """ + """
                 <tr><th>用户名</th><th>作品数</th><th>喜欢数</th><th>关注数</th><th>粉丝数</th><th>时间</th></tr>
                 <tr><td>{p[0]}</td><td>{p[1]}</td><td>{p[2]}</td><td>{p[3]}</td><td>{p[4]}</td><td>{p[5]}</td></tr>
-                <tr><td>{n[0]}</td><td>{n[1]}</td><td>{n[2]}</td><td>{n[3]}</td><td>{n[4]}</td><td>{n[5]}</td></tr>""".format(p=(previous_data['url'], previous_data['works_count'], previous_data['favorite_count'], previous_data['star_count'], previous_data['follower_count'], LASTTIME),
-                n=(self.url, self.works_count, self.favorite_count, self.star_count, self.follower_count, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))+"""
+                <tr><td>{n[0]}</td><td>{n[1]}</td><td>{n[2]}</td><td>{n[3]}</td><td>{n[4]}</td><td>{n[5]}</td></tr>""".format(
+            p=(previous_data['url'], previous_data['works_count'], previous_data['favorite_count'],
+               previous_data['star_count'], previous_data['follower_count'], LASTTIME),
+            n=(self.url, self.works_count, self.favorite_count, self.star_count, self.follower_count,
+               time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))) + """
                 </table>
                 <script>
                 window.onload=function(){
@@ -290,15 +296,17 @@ class DouyinHandle(object):
         print("update:{}".format(LASTTIME))
         tb = PrettyTable()
         tb.field_names = ["id", "works_count", "favorite_count", "star_count", "follower_count", "time"]
-        tb.add_row([previous_data['url'], previous_data['works_count'], previous_data['favorite_count'], previous_data['star_count'], previous_data['follower_count'], LASTTIME])  # 添加行数据
-        tb.add_row([self.url, self.works_count, self.favorite_count, self.star_count, self.follower_count, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())])  # 添加列数据
+        tb.add_row([previous_data['url'], previous_data['works_count'], previous_data['favorite_count'],
+                    previous_data['star_count'], previous_data['follower_count'], LASTTIME])  # 添加行数据
+        tb.add_row([self.url, self.works_count, self.favorite_count, self.star_count, self.follower_count,
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())])  # 添加列数据
         print(tb)
 
-        msg = MIMEText(html, 'html', 'utf-8') 
+        msg = MIMEText(html, 'html', 'utf-8')
         msg['Subject'] = Header('抖音用户信息实时监控', 'utf-8')
         msg['From'] = FROMEMAIL
-        msg['To'] = ",".join(TOEMAIL) 
-        email_client.sendmail(FROMEMAIL, TOEMAIL, msg.as_string()) 
+        msg['To'] = ",".join(TOEMAIL)
+        email_client.sendmail(FROMEMAIL, TOEMAIL, msg.as_string())
         email_client.quit()
 
         LASTTIME = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -306,12 +314,13 @@ class DouyinHandle(object):
 
 def main(url):
     DouyinHandle(url)
-    
+
 
 if __name__ == "__main__":
 
     parser = optparse.OptionParser("Usage: douyin_favorite.py -u <url>", version="V1.0")
-    parser.add_option("-u", "--url", action="store", dest="url", default=None, help="e.g.: https://www.iesdouyin.com/share/user/75459111811")
+    parser.add_option("-u", "--url", action="store", dest="url", default=None,
+                      help="e.g.: https://www.iesdouyin.com/share/user/75459111811")
     options, args = parser.parse_args()
 
     if not options.url:
@@ -322,10 +331,9 @@ if __name__ == "__main__":
     sheduler.add_job(main, 'interval', minutes=10, start_date=LASTTIME, args=[options.url])
     sheduler.start()
     try:
-        # This is here to simulate application activity (which keeps the main thread alive).
+        #  This is here to simulate application activity (which keeps the main thread alive).
         while True:
             time.sleep(2)
     except(KeyboardInterrupt, SystemExit):
-        # Not strictly necessary if daemonic mode is enabled but should be done if possible
-        scheduler.shutdown()
-
+        #  Not strictly necessary if daemonic mode is enabled but should be done if possible
+        sheduler.shutdown()
